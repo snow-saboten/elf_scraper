@@ -1,0 +1,39 @@
+name: Scrape and Notify
+
+on:
+  schedule:
+    - cron: "0 0 * * *"  # 毎日0時に実行
+  workflow_dispatch:  # 手動実行
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Download previous data
+        uses: actions/download-artifact@v3
+        with:
+          name: previous-data
+          path: .
+
+      - name: Run script
+        run: node index.js
+        env:
+          LINE_NOTIFY_TOKEN: ${{ secrets.LINE_NOTIFY_TOKEN }}
+
+      - name: Upload new data
+        uses: actions/upload-artifact@v3
+        with:
+          name: previous-data
+          path: previous_data.json
