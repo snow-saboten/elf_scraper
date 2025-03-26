@@ -51,25 +51,28 @@ async function scrape() {
 }
 
 // LINEメッセージ送信関数
-async function sendLineMessage(message) {
-    try {
-      await axios.post(
-        "https://api.line.me/v2/bot/message/broadcast",
-        {
-          messages: [{ type: "text", text: message }],
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      console.log("Notification sent!");
-    } catch (error) {
-      console.error("Error sending LINE message:", error.message);
-    }
-  }
+async function sendMessage(message) {
+    try{
+        const response = await axios.post(
+            "https://api.line.me/v2/bot/message/broadcast",
+            {
+                messages:[
+                    { type: "text", text: message }
+                ]
+            },
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+                }
+            }
+        );
+
+        console.log("success", response.data);
+    }catch (error) {
+        console.error("fail", error.response ? error.response.data : error.message);
+    }   
+}
 
 // メイン処理
 (async function () {
@@ -88,7 +91,7 @@ async function sendLineMessage(message) {
 
   if (updates.length > 0) {
     const message = updates.map((show) => `🎤 ${show.title}\n🔗 ${show.link}`).join("\n\n");
-    await sendLineNotify(`🎭 新しい「エルフ」の公演が見つかりました！\n\n${message}`);
+    await sendMessage(`🎭 新しい「エルフ」の公演が見つかりました！\n\n${message}`);
 
     // 最新のデータを保存
     fs.writeFileSync(ARTIFACT_FILE, JSON.stringify(newShows, null, 2));
