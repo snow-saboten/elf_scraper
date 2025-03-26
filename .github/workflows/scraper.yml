@@ -11,10 +11,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
@@ -22,10 +22,12 @@ jobs:
         run: npm install
 
       - name: Download previous data
+        id: download-artifact
+        continue-on-error: true  # アーティファクトがなくても処理を続行
         uses: actions/download-artifact@v4
         with:
           name: previous-data
-          path: .
+          path: ./previous-data
 
       - name: Run script
         run: node index.js
@@ -36,4 +38,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: previous-data
-          path: previous_data.json
+          path: ./previous_data.json
+          retention-days: 30 # 30日間保存
