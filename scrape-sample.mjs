@@ -19,24 +19,44 @@ const URLs = [
 
 
 async function scrape() {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
-  let newShows = [];
 
   for (let url of URLs) {
     try {
-        await page.goto(url);
-        const blocks = await page.evaluate(() => document.querySelectorAll('div.schedule-block'));
+          await page.goto(url, { waitUntil: "networkidle2" });
+          //日単位で要素を取得
+          const results = await page.evaluate(() => {
+            const scheduleBlocks = Array.from(document.querySelectorAll("div.schedule-block"));
+            const extractedData = [];
 
-        console.log(blocks.item(0));
+            scheduleBlocks.forEach((block) => {
+              //idから日付取得
+              const date = block.id.replace("schedule", "");
 
+              //イベント単位で取得
+              const scheduleTimes = Array.from(block.querySelectorAll("div.schedule-time"));
+              scheduleTimes.forEach((schedule) => {
+                const textContent = schedule.innerText.trim();
+
+                if(textContent.includes("エルフ")){
+                  extractedData.push({
+                    date: date,
+                    event: textContent,
+                  });
+                }
+              });
+            });
+
+            return extractedData;
+          });
+          console.log(results);
     } catch (error) {
       console.error(`Error fetching ${url}:`, error.message);
     }
   }
 
   await browser.close();
-  console.log(newShows);
   return newShows;
 }
 
