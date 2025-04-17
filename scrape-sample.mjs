@@ -19,12 +19,32 @@ const URLs = [
 
 
 async function scrape() {
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({ headless: false });
     const page = await browser.newPage();
 
   for (let url of URLs) {
     try {
           await page.goto(url, { waitUntil: "networkidle2" });
+          //カレンダー上部の月を選択する
+          const months = await page.$$eval("ul.calendar-month a", (elements) => 
+            elements.map((el) => el.getAttribute("data-m"))
+          );
+
+          console.log("取得した月：", months);
+
+          for(const month of months) {
+            const selector = `a[data-m="${month}"]`;
+
+            await page.waitForSelector(selector);
+            await page.click(selector);
+            await page.waitForFunction(
+              (selector) => document.querySelector(selector)?.classList.contains("active"),
+              {},
+              selector
+            );
+            //ページ描写が間に合ってなくて出演情報を取れてないけど、どうすりゃいいかわからぬ
+          }
+
           //日単位で要素を取得
           const results = await page.evaluate(() => {
             const scheduleBlocks = Array.from(document.querySelectorAll("div.schedule-block"));
@@ -57,7 +77,7 @@ async function scrape() {
   }
 
   await browser.close();
-  return newShows;
+  return null;
 }
 
 scrape();

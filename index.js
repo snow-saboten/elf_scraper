@@ -1,5 +1,5 @@
 const axios = require("axios");
-const cheerio = require("cheerio");
+import puppeteer from 'puppeteer';
 const fs = require("fs-extra");
 require("dotenv").config();
 
@@ -27,27 +27,46 @@ const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
 // スクレイピング関数
 async function scrape() {
-  let newShows = [];
+  const browser = await puppeteer.launch({ headless: false });
+  const page = await browser.newPage();
 
-  for (let url of URLs) {
-    try {
-      const { data } = await axios.get(url);
-      const $ = cheerio.load(data);
-      $("a").each((_, element) => {
-        const text = $(element).text().trim();
-        if (text.includes("エルフ")) {
-          newShows.push({
-            title: text,
-            link: url,
+for (let url of URLs) {
+  try {
+        await page.goto(url, { waitUntil: "networkidle2" });
+
+        //日単位で要素を取得
+        const results = await page.evaluate(() => {
+          const scheduleBlocks = Array.from(document.querySelectorAll("div.schedule-block"));
+          const extractedData = [];
+
+          scheduleBlocks.forEach((block) => {
+            //idから日付取得
+            const date = block.id.replace("schedule", "");
+
+            //イベント単位で取得
+            const scheduleTimes = Array.from(block.querySelectorAll("div.schedule-time"));
+            scheduleTimes.forEach((schedule) => {
+              const textContent = schedule.innerText.trim();
+
+              if(textContent.includes("エルフ")){
+                extractedData.push({
+                  date: date,
+                  event: textContent,
+                });
+              }
+            });
           });
-        }
-      });
-    } catch (error) {
-      console.error(`Error fetching ${url}:`, error.message);
-    }
-  }
 
-  return newShows;
+          return extractedData;
+        });
+        console.log(results);
+  } catch (error) {
+    console.error(`Error fetching ${url}:`, error.message);
+  }
+}
+
+await browser.close();
+return null;
 }
 
 // LINEメッセージ送信関数
